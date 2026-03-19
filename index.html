@@ -1,104 +1,170 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Angry Bird Style Game</title>
+<title>Pro Car Racing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
 margin: 0;
-background: skyblue;
+background: #0f172a;
 display: flex;
 flex-direction: column;
 align-items: center;
+color: white;
 font-family: Arial;
 }
 
-h1 {
-margin: 10px;
+h1 { margin: 10px; }
+
+.info {
+display: flex;
+gap: 20px;
 }
 
 canvas {
-background: lightgreen;
-border: 2px solid black;
+background: #222;
+border: 2px solid white;
+margin-top: 10px;
+}
+
+/* Mobile buttons */
+.controls {
+margin-top: 10px;
+}
+
+button {
+padding: 10px 20px;
+margin: 5px;
+font-size: 18px;
+border: none;
+background: lime;
+border-radius: 5px;
 }
 </style>
 
 </head>
 <body>
 
-<h1>🐦 Angry Bird Style Game</h1>
-<canvas id="game" width="600" height="400"></canvas>
+<h1>🚗 Pro Car Racing</h1>
+
+<div class="info">
+<div>Score: <span id="score">0</span></div>
+<div>High: <span id="high">0</span></div>
+</div>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<div class="controls">
+<button onclick="moveLeft()">⬅️</button>
+<button onclick="moveRight()">➡️</button>
+</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let bird = {x: 50, y: 300, radius: 15, vx: 0, vy: 0};
-let target = {x: 500, y: 300, w: 40, h: 40};
-let gravity = 0.5;
-let launched = false;
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
-canvas.addEventListener("click", () => {
-    if (!launched) {
-        bird.vx = 8;
-        bird.vy = -10;
-        launched = true;
-    }
-});
+let player = { x: 180, y: 500, w: 40, h: 60, speed: 5 };
+let enemies = [];
+let roadY = 0;
 
-function draw() {
-    ctx.clearRect(0,0,600,400);
+let score = 0;
+let speed = 4;
+let running = true;
 
-    // bird
+let high = localStorage.getItem("carHigh") || 0;
+document.getElementById("high").innerText = high;
+
+function spawnEnemy() {
+    let x = Math.floor(Math.random() * 360);
+    enemies.push({ x, y: -60, w: 40, h: 60 });
+}
+
+function drawRoad() {
+    ctx.fillStyle = "#333";
+    ctx.fillRect(0,0,400,600);
+
+    ctx.strokeStyle = "white";
+    ctx.setLineDash([20,15]);
+    ctx.lineDashOffset = -roadY;
+
     ctx.beginPath();
-    ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2);
-    ctx.fillStyle = "red";
-    ctx.fill();
+    ctx.moveTo(200,0);
+    ctx.lineTo(200,600);
+    ctx.stroke();
 
-    // target
-    ctx.fillStyle = "brown";
-    ctx.fillRect(target.x, target.y, target.w, target.h);
+    ctx.setLineDash([]);
+}
+
+function drawCar(car, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(car.x, car.y, car.w, car.h);
+}
+
+function collision(a,b){
+    return (
+        a.x < b.x + b.w &&
+        a.x + a.w > b.x &&
+        a.y < b.y + b.h &&
+        a.y + a.h > b.y
+    );
 }
 
 function update() {
-    if (launched) {
-        bird.vy += gravity;
-        bird.x += bird.vx;
-        bird.y += bird.vy;
-    }
+    if(!running) return;
 
-    // collision
-    if (
-        bird.x > target.x &&
-        bird.x < target.x + target.w &&
-        bird.y > target.y &&
-        bird.y < target.y + target.h
-    ) {
-        alert("Hit! 🎯");
-        resetGame();
-    }
+    // player movement (smooth)
+    if(keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
+    if(keys["ArrowRight"] && player.x < 360) player.x += player.speed;
 
-    // ground
-    if (bird.y > 350) {
-        resetGame();
-    }
+    // road animation
+    roadY += speed;
+
+    // enemies
+    enemies.forEach(e => {
+        e.y += speed;
+
+        if(collision(player, e)) {
+            running = false;
+
+            if(score > high){
+                localStorage.setItem("carHigh", score);
+            }
+
+            alert("Game Over 😢 Score: " + score);
+        }
+    });
+
+    enemies = enemies.filter(e => e.y < 600);
+
+    if(Math.random() < 0.03) spawnEnemy();
+
+    score++;
+    document.getElementById("score").innerText = score;
+
+    if(score % 200 === 0) speed += 0.5;
 }
 
-function resetGame() {
-    bird.x = 50;
-    bird.y = 300;
-    bird.vx = 0;
-    bird.vy = 0;
-    launched = false;
+function draw() {
+    drawRoad();
+    drawCar(player, "lime");
+    enemies.forEach(e => drawCar(e, "red"));
 }
 
-function gameLoop() {
+function loop() {
     update();
     draw();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(loop);
 }
 
-gameLoop();
+function moveLeft(){ player.x -= 40; }
+function moveRight(){ player.x += 40; }
+
+loop();
 </script>
 
 </body>
