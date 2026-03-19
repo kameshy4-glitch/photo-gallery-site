@@ -1,304 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Pro Snake Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Angry Bird Style Game</title>
 
 <style>
-:root{
-  --bg:#020617;
-  --neon:#39ff14;
-  --accent:#ff2d55;
-}
-body{
-  margin:0;
-  background: radial-gradient(1200px 600px at 50% -10%, #0b1220, var(--bg));
-  color:#e5e7eb;
-  font-family:system-ui, Arial;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-h1{ margin:10px 0 4px; letter-spacing:1px; }
-.topbar{
-  display:flex; gap:16px; align-items:center;
-}
-.badge{
-  background:#0b1220; padding:6px 10px; border-radius:8px; border:1px solid #111827;
-}
-canvas{
-  margin-top:10px;
-  background:#000;
-  border:2px solid var(--neon);
-  box-shadow:0 0 20px var(--neon);
-  border-radius:8px;
+body {
+margin: 0;
+background: skyblue;
+display: flex;
+flex-direction: column;
+align-items: center;
+font-family: Arial;
 }
 
-/* Controls */
-.controls{
-  margin:12px 0;
-  display:grid;
-  grid-template-columns:repeat(3,64px);
-  gap:10px;
-}
-.controls button{
-  height:52px; font-size:20px; border:none;
-  border-radius:8px; background:var(--neon); color:#001100;
+h1 {
+margin: 10px;
 }
 
-/* Overlay */
-.overlay{
-  position:fixed; inset:0; display:none;
-  background:rgba(0,0,0,0.7);
-  align-items:center; justify-content:center; flex-direction:column;
-}
-.overlay.show{ display:flex; }
-.card{
-  background:#020617; border:1px solid #111827; padding:20px;
-  border-radius:12px; text-align:center;
-}
-.btn{
-  margin-top:10px; padding:10px 16px; border:none;
-  border-radius:8px; background:var(--neon); cursor:pointer;
-}
-
-/* Small screens */
-@media (max-width:480px){
-  canvas{ width:92vw; height:92vw; }
+canvas {
+background: lightgreen;
+border: 2px solid black;
 }
 </style>
-</head>
 
+</head>
 <body>
 
-<h1>🐍 Pro Snake</h1>
-
-<div class="topbar">
-  <div class="badge">Score: <b id="score">0</b></div>
-  <div class="badge">High: <b id="high">0</b></div>
-  <div class="badge">Speed: <b id="spd">1x</b></div>
-</div>
-
-<canvas id="game"></canvas>
-
-<div class="controls">
-  <button onclick="setDir('UP')">⬆️</button>
-  <button onclick="setDir('LEFT')">⬅️</button>
-  <button onclick="setDir('DOWN')">⬇️</button>
-  <button onclick="setDir('RIGHT')">➡️</button>
-</div>
-
-<div class="overlay" id="overlay">
-  <div class="card">
-    <h2 id="overText">Game Over</h2>
-    <div>Score: <b id="finalScore">0</b></div>
-    <button class="btn" onclick="restart()">Restart</button>
-  </div>
-</div>
+<h1>🐦 Angry Bird Style Game</h1>
+<canvas id="game" width="600" height="400"></canvas>
 
 <script>
-/* ================= CONFIG ================= */
-const GRID = 20;             // cells per row/col
-const BASE_INTERVAL = 140;   // ms (lower = faster)
-const MIN_INTERVAL = 70;
-
-/* ================= CANVAS ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-function resizeCanvas(){
-  const size = Math.min(window.innerWidth, 520) - 20;
-  canvas.width = size;
-  canvas.height = size;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+let bird = {x: 50, y: 300, radius: 15, vx: 0, vy: 0};
+let target = {x: 500, y: 300, w: 40, h: 40};
+let gravity = 0.5;
+let launched = false;
 
-const cell = () => canvas.width / GRID;
-
-/* ================= STATE ================= */
-let snake, food, dir, nextDir, score, interval, running, lastTime;
-
-/* ================= INIT ================= */
-function init(){
-  snake = [{x:10,y:10}];
-  dir = "RIGHT";
-  nextDir = "RIGHT";
-  food = spawnFood();
-  score = 0;
-  interval = BASE_INTERVAL;
-  running = true;
-  lastTime = 0;
-
-  document.getElementById("score").textContent = score;
-  document.getElementById("spd").textContent = "1x";
-
-  const high = localStorage.getItem("high") || 0;
-  document.getElementById("high").textContent = high;
-
-  hideOverlay();
-}
-
-/* ================= FOOD ================= */
-function spawnFood(){
-  let f;
-  do{
-    f = {x:rand(0,GRID-1), y:rand(0,GRID-1)};
-  } while(snake.some(s=>s.x===f.x && s.y===f.y));
-  return f;
-}
-function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
-
-/* ================= INPUT ================= */
-function setDir(d){
-  if(d==="LEFT" && dir!=="RIGHT") nextDir=d;
-  if(d==="RIGHT" && dir!=="LEFT") nextDir=d;
-  if(d==="UP" && dir!=="DOWN") nextDir=d;
-  if(d==="DOWN" && dir!=="UP") nextDir=d;
-}
-document.addEventListener("keydown", e=>{
-  if(e.key==="ArrowLeft") setDir("LEFT");
-  if(e.key==="ArrowRight") setDir("RIGHT");
-  if(e.key==="ArrowUp") setDir("UP");
-  if(e.key==="ArrowDown") setDir("DOWN");
-  if(e.key===" ") togglePause();
+canvas.addEventListener("click", () => {
+    if (!launched) {
+        bird.vx = 8;
+        bird.vy = -10;
+        launched = true;
+    }
 });
 
-/* Touch swipe */
-let sx=0, sy=0;
-canvas.addEventListener("touchstart", e=>{
-  sx=e.touches[0].clientX; sy=e.touches[0].clientY;
-});
-canvas.addEventListener("touchend", e=>{
-  let dx=e.changedTouches[0].clientX-sx;
-  let dy=e.changedTouches[0].clientY-sy;
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>20) setDir("RIGHT"); else if(dx<-20) setDir("LEFT");
-  } else {
-    if(dy>20) setDir("DOWN"); else if(dy<-20) setDir("UP");
-  }
-});
+function draw() {
+    ctx.clearRect(0,0,600,400);
 
-/* ================= LOOP ================= */
-function loop(time){
-  if(!running) return;
-  if(time - lastTime > interval){
+    // bird
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2);
+    ctx.fillStyle = "red";
+    ctx.fill();
+
+    // target
+    ctx.fillStyle = "brown";
+    ctx.fillRect(target.x, target.y, target.w, target.h);
+}
+
+function update() {
+    if (launched) {
+        bird.vy += gravity;
+        bird.x += bird.vx;
+        bird.y += bird.vy;
+    }
+
+    // collision
+    if (
+        bird.x > target.x &&
+        bird.x < target.x + target.w &&
+        bird.y > target.y &&
+        bird.y < target.y + target.h
+    ) {
+        alert("Hit! 🎯");
+        resetGame();
+    }
+
+    // ground
+    if (bird.y > 350) {
+        resetGame();
+    }
+}
+
+function resetGame() {
+    bird.x = 50;
+    bird.y = 300;
+    bird.vx = 0;
+    bird.vy = 0;
+    launched = false;
+}
+
+function gameLoop() {
     update();
     draw();
-    lastTime = time;
-  }
-  requestAnimationFrame(loop);
+    requestAnimationFrame(gameLoop);
 }
 
-/* ================= UPDATE ================= */
-function update(){
-  dir = nextDir;
-
-  const head = {...snake[0]};
-  if(dir==="LEFT") head.x--;
-  if(dir==="RIGHT") head.x++;
-  if(dir==="UP") head.y--;
-  if(dir==="DOWN") head.y++;
-
-  // wall
-  if(head.x<0||head.y<0||head.x>=GRID||head.y>=GRID) return gameOver();
-
-  // self
-  if(snake.some(s=>s.x===head.x && s.y===head.y)) return gameOver();
-
-  snake.unshift(head);
-
-  // eat
-  if(head.x===food.x && head.y===food.y){
-    score++;
-    playBeep(700,80);
-    document.getElementById("score").textContent = score;
-
-    // speed scaling
-    interval = Math.max(MIN_INTERVAL, interval - 3);
-    const speedMul = (BASE_INTERVAL/interval).toFixed(2);
-    document.getElementById("spd").textContent = speedMul+"x";
-
-    food = spawnFood();
-  } else {
-    snake.pop();
-  }
-}
-
-/* ================= RENDER ================= */
-function draw(){
-  ctx.fillStyle="#000";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  const c = cell();
-
-  // grid (subtle)
-  ctx.strokeStyle="rgba(255,255,255,0.05)";
-  for(let i=0;i<=GRID;i++){
-    ctx.beginPath();
-    ctx.moveTo(i*c,0); ctx.lineTo(i*c,canvas.height); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0,i*c); ctx.lineTo(canvas.width,i*c); ctx.stroke();
-  }
-
-  // snake
-  snake.forEach((s,i)=>{
-    ctx.fillStyle = i===0 ? "#39ff14" : "#1faa00";
-    ctx.fillRect(s.x*c, s.y*c, c, c);
-  });
-
-  // food
-  ctx.fillStyle="#ff2d55";
-  ctx.fillRect(food.x*c, food.y*c, c, c);
-}
-
-/* ================= GAME OVER ================= */
-function gameOver(){
-  running=false;
-  playBeep(200,200);
-
-  const high = localStorage.getItem("high") || 0;
-  if(score>high){
-    localStorage.setItem("high", score);
-    document.getElementById("high").textContent = score;
-  }
-
-  document.getElementById("finalScore").textContent = score;
-  showOverlay();
-}
-
-/* ================= UI ================= */
-function showOverlay(){
-  document.getElementById("overlay").classList.add("show");
-}
-function hideOverlay(){
-  document.getElementById("overlay").classList.remove("show");
-}
-function restart(){
-  init();
-  requestAnimationFrame(loop);
-}
-function togglePause(){
-  running = !running;
-  if(running) requestAnimationFrame(loop);
-}
-
-/* ================= SOUND ================= */
-function playBeep(freq, dur){
-  try{
-    const ctxA = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctxA.createOscillator();
-    const gain = ctxA.createGain();
-    osc.frequency.value=freq;
-    osc.connect(gain); gain.connect(ctxA.destination);
-    osc.start();
-    setTimeout(()=>{ osc.stop(); ctxA.close(); }, dur);
-  }catch(e){}
-}
-
-/* ================= START ================= */
-init();
-requestAnimationFrame(loop);
+gameLoop();
 </script>
 
 </body>
