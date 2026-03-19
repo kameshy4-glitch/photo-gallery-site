@@ -3,8 +3,8 @@ function showTab(tab) {
     for (let i = 0; i < tabs.length; i++) {
         tabs[i].style.display = "none";
     }
-    document.getElementById(tab).style.display = "block";
+    document.getElementById(tab).style.display = "grid";
 }
 
-// Default open
-document.getElementById("home").style.display = "block";
+// Default tab
+document.getElementById("home").style.display = "grid";
