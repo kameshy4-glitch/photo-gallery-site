@@ -1,8 +1,10 @@
-function openImage(img) {
-    document.getElementById("popup").style.display = "flex";
-    document.getElementById("popup-img").src = img.src;
+function showTab(tab) {
+    let tabs = document.getElementsByClassName("tab-content");
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].style.display = "none";
+    }
+    document.getElementById(tab).style.display = "block";
 }
 
-function closeImage() {
-    document.getElementById("popup").style.display = "none";
-}
+// Default open
+document.getElementById("home").style.display = "block";
