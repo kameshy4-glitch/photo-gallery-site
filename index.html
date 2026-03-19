@@ -1,30 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Stylish Gallery</title>
+<title>News Gallery</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
-    <h1>📸 My Photo Gallery</h1>
+<h1>📰 Kamesh News Portal</h1>
 </header>
 
-<div class="gallery">
-    <img src="https://picsum.photos/id/101/400/300">
-    <img src="https://picsum.photos/id/102/400/300">
-    <img src="https://picsum.photos/id/103/400/300">
-    <img src="https://picsum.photos/id/104/400/300">
-    <img src="https://picsum.photos/id/105/400/300">
+<!-- Tabs -->
+<div class="tabs">
+<button onclick="showTab('home')">Home</button>
+<button onclick="showTab('news')">News</button>
+<button onclick="showTab('sports')">Sports</button>
+<button onclick="showTab('tech')">Tech</button>
 </div>
-<div id="popup" class="popup">
-    <span onclick="closeImage()">✖</span>
-    <img id="popup-img">
+
+<!-- Home -->
+<div id="home" class="tab-content">
+<h2>Welcome</h2>
+<p>Latest trending news and gallery</p>
 </div>
-    
-<footer>
-    <p>© 2026 Kamesh Gallery</p>
-</footer>
+
+<!-- News -->
+<div id="news" class="tab-content">
+<h2>Latest News</h2>
+<p>Eid 2026 update, Weather news, LPG crisis...</p>
+</div>
+
+<!-- Sports -->
+<div id="sports" class="tab-content">
+<h2>Sports</h2>
+<p>India won T20 World Cup 2026 🏆</p>
+</div>
+
+<!-- Tech -->
+<div id="tech" class="tab-content">
+<h2>Tech</h2>
+<p>AI Summit 2026 and new innovations</p>
+</div>
+
+<script src="script.js"></script>
 
 </body>
 </html>
