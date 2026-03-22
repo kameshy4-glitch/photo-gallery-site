@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Pro Car Racing</title>
+<title>Pro Car Racing - Kamesh</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -28,11 +28,37 @@ border: 2px solid white;
 margin-top: 10px;
 }
 
-/* Mobile buttons */
-.controls {
-margin-top: 10px;
+/* Start Screen */
+#startScreen {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.9);
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+z-index: 10;
 }
 
+/* Game Over */
+#gameOver {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.9);
+display: none;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+z-index: 10;
+}
+
+/* Buttons */
 button {
 padding: 10px 20px;
 margin: 5px;
@@ -40,6 +66,11 @@ font-size: 18px;
 border: none;
 background: lime;
 border-radius: 5px;
+}
+
+/* Mobile controls */
+.controls {
+margin-top: 10px;
 }
 </style>
 
@@ -60,6 +91,18 @@ border-radius: 5px;
 <button onclick="moveRight()">➡️</button>
 </div>
 
+<!-- Start Screen -->
+<div id="startScreen">
+<h2>🚗 Pro Car Racing</h2>
+<button onclick="startGame()">Start Game</button>
+</div>
+
+<!-- Game Over Screen -->
+<div id="gameOver">
+<h2 id="finalScore"></h2>
+<button onclick="restartGame()">Restart</button>
+</div>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -74,16 +117,29 @@ let roadY = 0;
 
 let score = 0;
 let speed = 4;
-let running = true;
+let running = false;
 
 let high = localStorage.getItem("carHigh") || 0;
 document.getElementById("high").innerText = high;
 
+// Start game
+function startGame(){
+    document.getElementById("startScreen").style.display = "none";
+    running = true;
+}
+
+// Restart
+function restartGame(){
+    location.reload();
+}
+
+// Enemy spawn
 function spawnEnemy() {
     let x = Math.floor(Math.random() * 360);
     enemies.push({ x, y: -60, w: 40, h: 60 });
 }
 
+// Road
 function drawRoad() {
     ctx.fillStyle = "#333";
     ctx.fillRect(0,0,400,600);
@@ -100,11 +156,13 @@ function drawRoad() {
     ctx.setLineDash([]);
 }
 
+// Car
 function drawCar(car, color) {
     ctx.fillStyle = color;
     ctx.fillRect(car.x, car.y, car.w, car.h);
 }
 
+// Collision
 function collision(a,b){
     return (
         a.x < b.x + b.w &&
@@ -114,17 +172,20 @@ function collision(a,b){
     );
 }
 
+// Update
 function update() {
     if(!running) return;
 
-    // player movement (smooth)
+    // Keyboard control
     if(keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
     if(keys["ArrowRight"] && player.x < 360) player.x += player.speed;
 
-    // road animation
+    // Boundary control (important)
+    if(player.x < 0) player.x = 0;
+    if(player.x > 360) player.x = 360;
+
     roadY += speed;
 
-    // enemies
     enemies.forEach(e => {
         e.y += speed;
 
@@ -135,7 +196,8 @@ function update() {
                 localStorage.setItem("carHigh", score);
             }
 
-            alert("Game Over 😢 Score: " + score);
+            document.getElementById("gameOver").style.display = "flex";
+            document.getElementById("finalScore").innerText = "Game Over 😢 Score: " + score;
         }
     });
 
@@ -149,20 +211,32 @@ function update() {
     if(score % 200 === 0) speed += 0.5;
 }
 
+// Draw
 function draw() {
     drawRoad();
     drawCar(player, "lime");
     enemies.forEach(e => drawCar(e, "red"));
 }
 
+// Loop
 function loop() {
     update();
     draw();
     requestAnimationFrame(loop);
 }
 
-function moveLeft(){ player.x -= 40; }
-function moveRight(){ player.x += 40; }
+// Mobile controls (FIXED)
+function moveLeft(){
+    if(player.x > 0){
+        player.x -= player.speed * 5;
+    }
+}
+
+function moveRight(){
+    if(player.x < 360){
+        player.x += player.speed * 5;
+    }
+}
 
 loop();
 </script>
