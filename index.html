@@ -1,244 +1,182 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Pro Car Racing - Kamesh</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body {
-margin: 0;
-background: #0f172a;
-display: flex;
-flex-direction: column;
-align-items: center;
-color: white;
-font-family: Arial;
-}
-
-h1 { margin: 10px; }
-
-.info {
-display: flex;
-gap: 20px;
-}
-
-canvas {
-background: #222;
-border: 2px solid white;
-margin-top: 10px;
-}
-
-/* Start Screen */
-#startScreen {
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: rgba(0,0,0,0.9);
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-z-index: 10;
-}
-
-/* Game Over */
-#gameOver {
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: rgba(0,0,0,0.9);
-display: none;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-z-index: 10;
-}
-
-/* Buttons */
-button {
-padding: 10px 20px;
-margin: 5px;
-font-size: 18px;
-border: none;
-background: lime;
-border-radius: 5px;
-}
-
-/* Mobile controls */
-.controls {
-margin-top: 10px;
-}
-</style>
-
+  <meta charset="UTF-8" />
+  <title>Mario Style Game – Improved</title>
+  <style>
+    body {
+      margin: 0;
+      background: #1e1e1e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      background: linear-gradient(#6ec6ff, #cceeff);
+      border: 3px solid white;
+    }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+  </style>
 </head>
 <body>
 
-<h1>🚗 Pro Car Racing</h1>
-
-<div class="info">
-<div>Score: <span id="score">0</span></div>
-<div>High: <span id="high">0</span></div>
-</div>
-
-<canvas id="game" width="400" height="600"></canvas>
-
-<div class="controls">
-<button onclick="moveLeft()">⬅️</button>
-<button onclick="moveRight()">➡️</button>
-</div>
-
-<!-- Start Screen -->
-<div id="startScreen">
-<h2>🚗 Pro Car Racing</h2>
-<button onclick="startGame()">Start Game</button>
-</div>
-
-<!-- Game Over Screen -->
-<div id="gameOver">
-<h2 id="finalScore"></h2>
-<button onclick="restartGame()">Restart</button>
-</div>
+<div class="info">⬅ ➡ Move | Space Jump</div>
+<canvas id="game" width="900" height="450"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let keys = {};
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
+// ================= PLAYER =================
+const player = {
+  x: 80,
+  y: 0,
+  w: 40,
+  h: 40,
+  vx: 0,
+  vy: 0,
+  speed: 6,
+  jump: -16,
+  gravity: 0.9,
+  onGround: false
+};
 
-let player = { x: 180, y: 500, w: 40, h: 60, speed: 5 };
-let enemies = [];
-let roadY = 0;
+// ================= WORLD =================
+const platforms = [
+  { x: 0, y: 400, w: 2000, h: 50 },
+  { x: 250, y: 300, w: 200, h: 20 },
+  { x: 550, y: 230, w: 180, h: 20 },
+  { x: 850, y: 160, w: 160, h: 20 },
+  { x: 1200, y: 280, w: 220, h: 20 }
+];
+
+const coins = [
+  { x: 300, y: 260, r: 8, taken: false },
+  { x: 600, y: 190, r: 8, taken: false },
+  { x: 900, y: 120, r: 8, taken: false },
+  { x: 1250, y: 240, r: 8, taken: false }
+];
 
 let score = 0;
-let speed = 4;
-let running = false;
 
-let high = localStorage.getItem("carHigh") || 0;
-document.getElementById("high").innerText = high;
+// ================= CAMERA =================
+let cameraX = 0;
 
-// Start game
-function startGame(){
-    document.getElementById("startScreen").style.display = "none";
-    running = true;
-}
+// ================= INPUT =================
+const keys = {};
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
 
-// Restart
-function restartGame(){
-    location.reload();
-}
-
-// Enemy spawn
-function spawnEnemy() {
-    let x = Math.floor(Math.random() * 360);
-    enemies.push({ x, y: -60, w: 40, h: 60 });
-}
-
-// Road
-function drawRoad() {
-    ctx.fillStyle = "#333";
-    ctx.fillRect(0,0,400,600);
-
-    ctx.strokeStyle = "white";
-    ctx.setLineDash([20,15]);
-    ctx.lineDashOffset = -roadY;
-
-    ctx.beginPath();
-    ctx.moveTo(200,0);
-    ctx.lineTo(200,600);
-    ctx.stroke();
-
-    ctx.setLineDash([]);
-}
-
-// Car
-function drawCar(car, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(car.x, car.y, car.w, car.h);
-}
-
-// Collision
-function collision(a,b){
-    return (
-        a.x < b.x + b.w &&
-        a.x + a.w > b.x &&
-        a.y < b.y + b.h &&
-        a.y + a.h > b.y
-    );
-}
-
-// Update
+// ================= UPDATE =================
 function update() {
-    if(!running) return;
+  // Horizontal movement
+  player.vx = 0;
+  if (keys["ArrowRight"]) player.vx = player.speed;
+  if (keys["ArrowLeft"]) player.vx = -player.speed;
 
-    // Keyboard control
-    if(keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
-    if(keys["ArrowRight"] && player.x < 360) player.x += player.speed;
+  // Jump
+  if (keys["Space"] && player.onGround) {
+    player.vy = player.jump;
+    player.onGround = false;
+  }
 
-    // Boundary control (important)
-    if(player.x < 0) player.x = 0;
-    if(player.x > 360) player.x = 360;
+  // Apply physics
+  player.vy += player.gravity;
+  player.x += player.vx;
+  player.y += player.vy;
 
-    roadY += speed;
+  player.onGround = false;
 
-    enemies.forEach(e => {
-        e.y += speed;
+  // Collision with platforms
+  platforms.forEach(p => {
+    if (
+      player.x < p.x + p.w &&
+      player.x + player.w > p.x &&
+      player.y < p.y + p.h &&
+      player.y + player.h > p.y
+    ) {
+      if (player.vy > 0) {
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+      }
+    }
+  });
 
-        if(collision(player, e)) {
-            running = false;
+  // Coins
+  coins.forEach(c => {
+    if (!c.taken) {
+      let dx = (player.x + player.w / 2) - c.x;
+      let dy = (player.y + player.h / 2) - c.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < c.r + player.w / 2) {
+        c.taken = true;
+        score += 10;
+      }
+    }
+  });
 
-            if(score > high){
-                localStorage.setItem("carHigh", score);
-            }
+  // Fall reset
+  if (player.y > canvas.height) {
+    player.x = 80;
+    player.y = 0;
+    score = 0;
+    coins.forEach(c => c.taken = false);
+  }
 
-            document.getElementById("gameOver").style.display = "flex";
-            document.getElementById("finalScore").innerText = "Game Over 😢 Score: " + score;
-        }
-    });
-
-    enemies = enemies.filter(e => e.y < 600);
-
-    if(Math.random() < 0.03) spawnEnemy();
-
-    score++;
-    document.getElementById("score").innerText = score;
-
-    if(score % 200 === 0) speed += 0.5;
+  // Camera follows player
+  cameraX = player.x - 200;
+  if (cameraX < 0) cameraX = 0;
 }
 
-// Draw
+// ================= DRAW =================
 function draw() {
-    drawRoad();
-    drawCar(player, "lime");
-    enemies.forEach(e => drawCar(e, "red"));
-}
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Loop
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
+  ctx.save();
+  ctx.translate(-cameraX, 0);
 
-// Mobile controls (FIXED)
-function moveLeft(){
-    if(player.x > 0){
-        player.x -= player.speed * 5;
+  // Platforms
+  ctx.fillStyle = "#2ecc71";
+  platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
+
+  // Coins
+  coins.forEach(c => {
+    if (!c.taken) {
+      ctx.fillStyle = "gold";
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.fill();
     }
+  });
+
+  // Player
+  ctx.fillStyle = "#e74c3c";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  ctx.restore();
+
+  // UI
+  ctx.fillStyle = "white";
+  ctx.font = "18px Arial";
+  ctx.fillText("Score: " + score, 20, 30);
 }
 
-function moveRight(){
-    if(player.x < 360){
-        player.x += player.speed * 5;
-    }
+// ================= LOOP =================
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
 }
 
-loop();
+gameLoop();
 </script>
 
 </body>
