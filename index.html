@@ -1,179 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Mario Style Game – Improved</title>
-  <style>
-    body {
-      margin: 0;
-      background: #1e1e1e;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-    canvas {
-      background: linear-gradient(#6ec6ff, #cceeff);
-      border: 3px solid white;
-    }
-    .info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-    }
-  </style>
+<title>Mario Fun Game - Kamesh</title>
+<style>
+body { margin:0; background:#111; text-align:center; }
+canvas { background:skyblue; display:block; margin:auto; border:2px solid white; }
+</style>
 </head>
 <body>
 
-<div class="info">⬅ ➡ Move | Space Jump</div>
-<canvas id="game" width="900" height="450"></canvas>
+<canvas id="game" width="800" height="400"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
 
-// ================= PLAYER =================
-const player = {
-  x: 80,
-  y: 0,
-  w: 40,
-  h: 40,
-  vx: 0,
-  vy: 0,
-  speed: 6,
-  jump: -16,
-  gravity: 0.9,
-  onGround: false
+// PLAYER
+let player = {
+    x:100, y:300, w:40, h:40,
+    vx:0, vy:0,
+    speed:5,
+    gravity:1,
+    jump:-15,
+    onGround:false
 };
 
-// ================= WORLD =================
-const platforms = [
-  { x: 0, y: 400, w: 2000, h: 50 },
-  { x: 250, y: 300, w: 200, h: 20 },
-  { x: 550, y: 230, w: 180, h: 20 },
-  { x: 850, y: 160, w: 160, h: 20 },
-  { x: 1200, y: 280, w: 220, h: 20 }
+// INPUT
+let keys = {};
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
+
+// PLATFORMS
+let platforms = [
+    {x:0,y:350,w:800,h:50},
+    {x:200,y:280,w:150,h:20},
+    {x:400,y:220,w:150,h:20},
+    {x:600,y:160,w:150,h:20}
 ];
 
-const coins = [
-  { x: 300, y: 260, r: 8, taken: false },
-  { x: 600, y: 190, r: 8, taken: false },
-  { x: 900, y: 120, r: 8, taken: false },
-  { x: 1250, y: 240, r: 8, taken: false }
+// COINS
+let coins = [
+    {x:230,y:250,r:10, collected:false},
+    {x:430,y:190,r:10, collected:false},
+    {x:630,y:130,r:10, collected:false}
 ];
 
 let score = 0;
 
-// ================= CAMERA =================
-let cameraX = 0;
+// UPDATE
+function update(){
 
-// ================= INPUT =================
-const keys = {};
-document.addEventListener("keydown", e => keys[e.code] = true);
-document.addEventListener("keyup", e => keys[e.code] = false);
+    // Movement
+    player.vx = 0;
+    if(keys["ArrowLeft"]) player.vx = -player.speed;
+    if(keys["ArrowRight"]) player.vx = player.speed;
 
-// ================= UPDATE =================
-function update() {
-  // Horizontal movement
-  player.vx = 0;
-  if (keys["ArrowRight"]) player.vx = player.speed;
-  if (keys["ArrowLeft"]) player.vx = -player.speed;
+    player.x += player.vx;
 
-  // Jump
-  if (keys["Space"] && player.onGround) {
-    player.vy = player.jump;
+    // Jump
+    if(keys["Space"] && player.onGround){
+        player.vy = player.jump;
+    }
+
+    // Gravity
+    player.vy += player.gravity;
+    player.y += player.vy;
+
     player.onGround = false;
-  }
 
-  // Apply physics
-  player.vy += player.gravity;
-  player.x += player.vx;
-  player.y += player.vy;
+    // Platform collision
+    platforms.forEach(p => {
+        if(player.x < p.x+p.w &&
+           player.x+player.w > p.x &&
+           player.y < p.y+p.h &&
+           player.y+player.h > p.y){
 
-  player.onGround = false;
+            if(player.vy > 0){
+                player.y = p.y - player.h;
+                player.vy = 0;
+                player.onGround = true;
+            }
+        }
+    });
 
-  // Collision with platforms
-  platforms.forEach(p => {
-    if (
-      player.x < p.x + p.w &&
-      player.x + player.w > p.x &&
-      player.y < p.y + p.h &&
-      player.y + player.h > p.y
-    ) {
-      if (player.vy > 0) {
-        player.y = p.y - player.h;
-        player.vy = 0;
-        player.onGround = true;
-      }
-    }
-  });
-
-  // Coins
-  coins.forEach(c => {
-    if (!c.taken) {
-      let dx = (player.x + player.w / 2) - c.x;
-      let dy = (player.y + player.h / 2) - c.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < c.r + player.w / 2) {
-        c.taken = true;
-        score += 10;
-      }
-    }
-  });
-
-  // Fall reset
-  if (player.y > canvas.height) {
-    player.x = 80;
-    player.y = 0;
-    score = 0;
-    coins.forEach(c => c.taken = false);
-  }
-
-  // Camera follows player
-  cameraX = player.x - 200;
-  if (cameraX < 0) cameraX = 0;
+    // Coin collision
+    coins.forEach(c => {
+        if(!c.collected &&
+           player.x < c.x + c.r &&
+           player.x + player.w > c.x &&
+           player.y < c.y + c.r &&
+           player.y + player.h > c.y){
+            c.collected = true;
+            score++;
+        }
+    });
 }
 
-// ================= DRAW =================
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// DRAW
+function draw(){
+    ctx.clearRect(0,0,800,400);
 
-  ctx.save();
-  ctx.translate(-cameraX, 0);
+    // platforms
+    ctx.fillStyle="green";
+    platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
 
-  // Platforms
-  ctx.fillStyle = "#2ecc71";
-  platforms.forEach(p => ctx.fillRect(p.x, p.y, p.w, p.h));
+    // coins
+    ctx.fillStyle="gold";
+    coins.forEach(c=>{
+        if(!c.collected){
+            ctx.beginPath();
+            ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+            ctx.fill();
+        }
+    });
 
-  // Coins
-  coins.forEach(c => {
-    if (!c.taken) {
-      ctx.fillStyle = "gold";
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
+    // player
+    ctx.fillStyle="red";
+    ctx.fillRect(player.x,player.y,player.w,player.h);
 
-  // Player
-  ctx.fillStyle = "#e74c3c";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-
-  ctx.restore();
-
-  // UI
-  ctx.fillStyle = "white";
-  ctx.font = "18px Arial";
-  ctx.fillText("Score: " + score, 20, 30);
+    // score
+    ctx.fillStyle="black";
+    ctx.font="20px Arial";
+    ctx.fillText("Score: "+score,10,20);
 }
 
-// ================= LOOP =================
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
+// LOOP
+function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
