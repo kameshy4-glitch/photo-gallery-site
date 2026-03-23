@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Mario Fun Game - Kamesh</title>
+<title>Mario Multi-Level Game</title>
 <style>
 body { margin:0; background:#111; text-align:center; }
 canvas { background:skyblue; display:block; margin:auto; border:2px solid white; }
@@ -17,7 +17,7 @@ let ctx = canvas.getContext("2d");
 
 // PLAYER
 let player = {
-    x:100, y:300, w:40, h:40,
+    x:50, y:300, w:40, h:40,
     vx:0, vy:0,
     speed:5,
     gravity:1,
@@ -30,46 +30,63 @@ let keys = {};
 document.addEventListener("keydown", e => keys[e.code] = true);
 document.addEventListener("keyup", e => keys[e.code] = false);
 
-// PLATFORMS
-let platforms = [
-    {x:0,y:350,w:800,h:50},
-    {x:200,y:280,w:150,h:20},
-    {x:400,y:220,w:150,h:20},
-    {x:600,y:160,w:150,h:20}
+// LEVEL DATA
+let levels = [
+    {
+        platforms: [
+            {x:0,y:350,w:800,h:50},
+            {x:200,y:280,w:150,h:20},
+            {x:400,y:220,w:150,h:20}
+        ],
+        coins: [
+            {x:220,y:250},{x:420,y:190}
+        ]
+    },
+    {
+        platforms: [
+            {x:0,y:350,w:800,h:50},
+            {x:150,y:300,w:120,h:20},
+            {x:350,y:250,w:120,h:20},
+            {x:550,y:200,w:120,h:20}
+        ],
+        coins: [
+            {x:170,y:270},{x:370,y:220},{x:570,y:170}
+        ]
+    }
 ];
 
-// COINS
-let coins = [
-    {x:230,y:250,r:10, collected:false},
-    {x:430,y:190,r:10, collected:false},
-    {x:630,y:130,r:10, collected:false}
-];
-
+let currentLevel = 0;
+let platforms = [];
+let coins = [];
 let score = 0;
+
+// LOAD LEVEL
+function loadLevel(index){
+    platforms = levels[index].platforms;
+    coins = levels[index].coins.map(c => ({...c, r:10, collected:false}));
+    player.x = 50;
+    player.y = 300;
+}
 
 // UPDATE
 function update(){
-
-    // Movement
     player.vx = 0;
     if(keys["ArrowLeft"]) player.vx = -player.speed;
     if(keys["ArrowRight"]) player.vx = player.speed;
 
     player.x += player.vx;
 
-    // Jump
     if(keys["Space"] && player.onGround){
         player.vy = player.jump;
     }
 
-    // Gravity
     player.vy += player.gravity;
     player.y += player.vy;
 
     player.onGround = false;
 
-    // Platform collision
-    platforms.forEach(p => {
+    // Collision
+    platforms.forEach(p=>{
         if(player.x < p.x+p.w &&
            player.x+player.w > p.x &&
            player.y < p.y+p.h &&
@@ -83,28 +100,45 @@ function update(){
         }
     });
 
-    // Coin collision
-    coins.forEach(c => {
-        if(!c.collected &&
-           player.x < c.x + c.r &&
-           player.x + player.w > c.x &&
-           player.y < c.y + c.r &&
-           player.y + player.h > c.y){
-            c.collected = true;
-            score++;
+    // Coins
+    let allCollected = true;
+
+    coins.forEach(c=>{
+        if(!c.collected){
+            allCollected = false;
+            if(player.x < c.x+c.r &&
+               player.x+player.w > c.x &&
+               player.y < c.y+c.r &&
+               player.y+player.h > c.y){
+                c.collected = true;
+                score++;
+            }
         }
     });
+
+    // Next Level
+    if(allCollected){
+        currentLevel++;
+        if(currentLevel < levels.length){
+            loadLevel(currentLevel);
+        } else {
+            alert("Game Completed 🎉");
+            currentLevel = 0;
+            score = 0;
+            loadLevel(0);
+        }
+    }
 }
 
 // DRAW
 function draw(){
     ctx.clearRect(0,0,800,400);
 
-    // platforms
+    // Platforms
     ctx.fillStyle="green";
     platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
 
-    // coins
+    // Coins
     ctx.fillStyle="gold";
     coins.forEach(c=>{
         if(!c.collected){
@@ -114,14 +148,15 @@ function draw(){
         }
     });
 
-    // player
+    // Player
     ctx.fillStyle="red";
     ctx.fillRect(player.x,player.y,player.w,player.h);
 
-    // score
+    // UI
     ctx.fillStyle="black";
-    ctx.font="20px Arial";
+    ctx.font="18px Arial";
     ctx.fillText("Score: "+score,10,20);
+    ctx.fillText("Level: "+(currentLevel+1),10,40);
 }
 
 // LOOP
@@ -131,6 +166,8 @@ function gameLoop(){
     requestAnimationFrame(gameLoop);
 }
 
+// START
+loadLevel(0);
 gameLoop();
 </script>
 
